@@ -1,33 +1,34 @@
-from selenium import webdriver
-from bs4 import BeautifulSoup
-import csv
-import time
+from bs4 import BeautifulSoup as bs
+import requests
+import pandas as pd
 
-START_URL = "https://en.wikipedia.org/wiki/List_of_brightest_stars_and_other_record_stars"
-browser = webdriver.Chrome("C:/Users/ADMIN/pro127/chromedriver.exe")
-browser.get(START_URL)
-time.sleep(10)
-def scrap():
-    headers = ["name","Distance","planet_mass","mass", "radius"]
-    Star_data = []
-    for i in range(0,426):
-        soup = BeautifulSoup(browser.page_source,"html.parser")
-        for ul_tag in soup.find_all("ul",attrs={"class","name"}):
-            li_tags = ul_tag.find_all("li")
-            temp_list = []
-            for index,li_tag in enumerate(li_tags):
-                if index == 0:
-                    temp_list.append(li_tag.find_all("a")[0].contents[0])
-                else:
-                    try:
-                        temp_list.append(li_tag.contents[0])
-                    except:
-                        temp_list.append("")
-            Star_data.append(temp_list)
-        browser.find_element_by_xpath('//*[@id="mw-content-text"]/div[1]/table/tbody/tr[1]/td[1]/span[1]').click()
-    with open("scrapper.csv","w") as f:
-        csvwriter = csv.writer(f)
-        csvwriter.writerow(headers)
-        csvwriter.writerows(Star_data)
+url = 'https://en.wikipedia.org/wiki/List_of_brightest_stars_and_other_record_stars'
+page = requests.get(url)
+print(page)
+soup = bs(page.text,'html.parser')
+star_table = soup.find('table')
+temp_list= []
+table_rows = star_table.find_all('tr')
 
-scrap()
+for tr in table_rows:
+    td = tr.find_all('td')
+    row = [i.text.rstrip() for i in td]
+    temp_list.append(row)
+
+Star_names = []
+Distance =[]
+Mass = []
+Radius =[]
+Lum = []
+
+for i in range(1,len(temp_list)):
+    Star_names.append(temp_list[i][1])
+    Distance.append(temp_list[i][3])
+    Mass.append(temp_list[i][5])
+    Radius.append(temp_list[i][6])
+    Lum.append(temp_list[i][7])
+    
+file = pd.DataFrame(list(zip(Star_names,Distance,Mass,Radius,Lum)),columns=['Star_name','Distance','Mass','Radius','Luminosity'])
+print(file)
+
+file.to_csv('final.csv')
